@@ -1,4 +1,4 @@
-# FruitToken Contract Readme
+# FruitToken Contract
 
 ## Description
 
