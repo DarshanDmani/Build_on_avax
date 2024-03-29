@@ -1,0 +1,68 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract FruitToken is ERC20, Ownable {
+    enum Fruit { DRY_FRUITS, FRESH_FRUITS, RIPENED_FRUITS }
+
+    event FruitRedeemed(address indexed account, Fruit fruit, uint256 fruitCost);
+    event TokensMinted(address indexed beneficiary, uint256 amount);
+    event TokensBurned(address indexed burner, uint256 amount);
+    event TokensTransferred(address indexed sender, address indexed recipient, uint256 amount);
+
+    mapping(address => Fruit) public userSelectedFruits;
+    mapping(Fruit => uint256) public fruitCosts;
+
+    constructor(address initialOwner) ERC20("FruitToken", "FTK") Ownable(initialOwner) {
+        initializeFruitCosts();
+    }
+
+    function mintTokens(address to, uint256 amount) external onlyOwner {
+        _mint(to, amount);
+        emit TokensMinted(to, amount);
+    }
+
+    function burnTokens(uint256 amount) external {
+        require(amount > 0, "Amount must be greater than zero for burning tokens");
+        require(balanceOf(msg.sender) >= amount, "Insufficient balance for burning tokens");
+        _burn(msg.sender, amount);
+        emit TokensBurned(msg.sender, amount);
+    }
+
+    function redeemFruit(uint8 fruitNumber) external {
+        Fruit fruit = getFruit(fruitNumber);
+        uint256 fruitCost = getFruitCost(fruit);
+
+        require(fruitCost > 0, "Invalid fruit selected");
+        require(balanceOf(msg.sender) >= fruitCost, "Insufficient balance for redeeming fruit");
+
+        _burn(msg.sender, fruitCost);
+        userSelectedFruits[msg.sender] = fruit;
+
+        emit FruitRedeemed(msg.sender, fruit, fruitCost);
+    }
+
+    function transferTokens(address recipient, uint256 amount) external {
+        require(recipient != address(0), "Invalid recipient address");
+        require(balanceOf(msg.sender) >= amount, "Insufficient balance for transfer");
+        _transfer(msg.sender, recipient, amount);
+        emit TokensTransferred(msg.sender, recipient, amount);
+    }
+
+    function getFruitCost(Fruit fruit) internal view returns (uint256) {
+        return fruitCosts[fruit];
+    }
+
+    function getFruit(uint8 fruitNumber) internal pure returns (Fruit) {
+        require(fruitNumber >= 1 && fruitNumber <= 3, "Invalid fruit number");
+        return Fruit(fruitNumber - 1);
+    }
+
+    function initializeFruitCosts() internal {
+        fruitCosts[Fruit.DRY_FRUITS] = 1000;
+        fruitCosts[Fruit.FRESH_FRUITS] = 500;
+        fruitCosts[Fruit.RIPENED_FRUITS] = 300;
+    }
+}
